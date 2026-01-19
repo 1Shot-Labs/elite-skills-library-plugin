@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+*.log
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config (should never be in version control)
+.claude/*.local.md
+*.local.md
+
+# Cache
+.cache/

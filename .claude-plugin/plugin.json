@@ -1,0 +1,15 @@
+{
+  "name": "elite-skills",
+  "description": "Elite Skills Library - Premium Claude Code skills via subscription",
+  "version": "1.0.0",
+  "author": {
+    "name": "1Shot Labs",
+    "email": "charles@1shotlabs.com"
+  },
+  "homepage": "https://skills.1shotlabs.com",
+  "repository": "https://github.com/1Shot-Labs/elite-skills-library-plugin",
+  "license": "MIT",
+  "keywords": ["skills", "productivity", "subscription", "elite", "ai"],
+  "commands": "./commands",
+  "skills": "./skills"
+}
