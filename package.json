@@ -1,0 +1,43 @@
+{
+  "name": "elite-skills-library-plugin",
+  "version": "1.0.0",
+  "description": "Elite Skills Library - Premium Claude Code skills via subscription",
+  "author": {
+    "name": "1Shot Labs",
+    "email": "charles@1shotlabs.com"
+  },
+  "license": "MIT",
+  "homepage": "https://skills.1shotlabs.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1Shot-Labs/elite-skills-library-plugin"
+  },
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "skills",
+    "productivity",
+    "subscription"
+  ],
+  "type": "module",
+  "scripts": {
+    "validate": "bash scripts/validate.sh",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "test": "npm run validate"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    ".claude-plugin/",
+    "commands/",
+    "skills/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ]
+}
