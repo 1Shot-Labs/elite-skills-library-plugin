@@ -373,3 +373,209 @@ This helps identify if the issue is:
 - [Installation Guide](../INSTALLATION.md)
 - [Troubleshooting](../README.md#troubleshooting)
 - [Support](https://github.com/1Shot-Labs/elite-skills-library-plugin/issues)
+
+---
+
+## Implementation
+
+When this command is invoked, follow these steps:
+
+### Step 1: Check Configuration
+
+```typescript
+import { getApiKey, isConfigured } from '../lib/config';
+
+if (!isConfigured()) {
+  console.log('✗ Elite Skills is not configured.\n');
+  console.log('Run /elite-skills:configure to set up your API key.');
+  return;
+}
+
+const apiKey = await getApiKey();
+```
+
+### Step 2: Fetch Subscription Status
+
+```typescript
+import { getSubscriptionStatus, formatStatusDisplay, formatErrorDisplay } from '../lib/status';
+
+console.log('Fetching status...\n');
+
+const result = await getSubscriptionStatus(apiKey);
+
+if (!result.success) {
+  console.log(formatErrorDisplay(result.error));
+  return;
+}
+
+console.log(formatStatusDisplay(result.data));
+```
+
+### Complete Implementation Example
+
+```typescript
+import { getApiKey, isConfigured } from '../lib/config';
+import {
+  getSubscriptionStatus,
+  formatStatusDisplay,
+  formatErrorDisplay,
+  SubscriptionStatus
+} from '../lib/status';
+
+async function status() {
+  // Step 1: Check if configured
+  if (!isConfigured()) {
+    console.log('✗ Elite Skills is not configured.\n');
+    console.log('To get started:');
+    console.log('  1. Get an API key at https://skills.1shotlabs.com/dashboard/api-keys');
+    console.log('  2. Run /elite-skills:configure');
+    return;
+  }
+
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    console.log('✗ Could not read API key from configuration.\n');
+    console.log('Try running /elite-skills:configure again.');
+    return;
+  }
+
+  // Step 2: Fetch status from API
+  console.log('Fetching subscription status...\n');
+
+  const result = await getSubscriptionStatus(apiKey);
+
+  if (!result.success) {
+    console.log(formatErrorDisplay(result.error));
+    return;
+  }
+
+  // Step 3: Display status
+  console.log(formatStatusDisplay(result.data));
+
+  // Step 4: Show warnings if needed
+  showWarnings(result.data);
+}
+
+function showWarnings(status: SubscriptionStatus) {
+  const warnings: string[] = [];
+
+  // Usage warning
+  if (status.usage.percentUsed >= 90) {
+    warnings.push('⚠ You are approaching your monthly request limit.');
+  }
+
+  // Rate limit warning
+  if (status.rateLimit.status === 'warning') {
+    warnings.push('⚠ Rate limit is running low. Consider slowing down requests.');
+  } else if (status.rateLimit.status === 'exceeded') {
+    warnings.push('✗ Rate limit exceeded. Requests will be blocked until reset.');
+  }
+
+  // Billing warning
+  if (status.billing.status === 'past_due') {
+    warnings.push('⚠ Payment is past due. Update billing at skills.1shotlabs.com/dashboard');
+  } else if (status.billing.status === 'canceled') {
+    warnings.push('✗ Subscription canceled. Renew at skills.1shotlabs.com/pricing');
+  }
+
+  if (warnings.length > 0) {
+    console.log('\n' + warnings.join('\n'));
+  }
+}
+```
+
+### Output Formatting
+
+The status display uses Unicode symbols for cross-platform compatibility:
+
+| Symbol | Meaning |
+|--------|---------|
+| ✓ | Success/Healthy |
+| ✗ | Error/Problem |
+| ⚠ | Warning |
+
+### Status Response Fields
+
+```typescript
+interface SubscriptionStatus {
+  isValid: boolean;
+  plan: 'free' | 'professional' | 'enterprise';
+  planDisplayName: string;
+  usage: {
+    requestsUsed: number;
+    requestsLimit: number;
+    percentUsed: number;
+  };
+  billing: {
+    nextBillingDate: string | null;
+    status: 'active' | 'canceled' | 'past_due' | 'trialing';
+  };
+  skills: {
+    totalAvailable: number;
+    categories: number;
+  };
+  apiKey: {
+    isActive: boolean;
+    createdAt: string;
+    lastUsedAt: string | null;
+  };
+  rateLimit: {
+    remaining: number;
+    resetAt: string;
+    status: 'healthy' | 'warning' | 'exceeded';
+  };
+}
+```
+
+### Error Handling
+
+| Error Code | Display Message |
+|------------|-----------------|
+| NOT_CONFIGURED | "Elite Skills is not configured. Run /elite-skills:configure to set up." |
+| INVALID_KEY | "Invalid API key. Verify at skills.1shotlabs.com/dashboard/api-keys" |
+| NETWORK_ERROR | "Failed to connect to API: [details]" |
+| API_ERROR | "API returned error: [details]" |
+
+### Helpful Suggestions
+
+When displaying errors, include actionable suggestions:
+
+**Not Configured:**
+```
+✗ Elite Skills is not configured.
+
+To get started:
+  1. Get an API key at https://skills.1shotlabs.com/dashboard/api-keys
+  2. Run /elite-skills:configure
+```
+
+**Invalid Key:**
+```
+✗ Invalid API key.
+
+Your API key may have been revoked or is incorrect.
+Verify at: https://skills.1shotlabs.com/dashboard/api-keys
+```
+
+**Network Error:**
+```
+✗ Network error.
+
+Failed to connect to API: [error details]
+
+Check your internet connection and try again.
+```
+
+**Usage Limit Warning:**
+```
+Elite Skills Status:
+
+✓ API key configured
+✓ Subscription: Free
+⚠ Usage: 95/100 requests this month (95%)
+✓ Skills available: 273
+✓ Rate limit: Healthy
+
+⚠ You are approaching your monthly request limit.
+Consider upgrading at: https://skills.1shotlabs.com/pricing
+```

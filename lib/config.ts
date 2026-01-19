@@ -4,10 +4,18 @@
  */
 
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import { SkillConfig, ConfigurationError } from './types';
 
 const CONFIG_FILE = '.claude/.elite-skills.local.md';
+
+// API Configuration
+export const API_BASE_URL = 'https://skills.1shotlabs.com/api';
+
+// Constants for validation
+const API_KEY_PREFIX = 'esk_';
+const API_KEY_LENGTH = 68;
 
 /**
  * Get the project root directory
@@ -20,7 +28,7 @@ function getProjectRoot(): string {
 /**
  * Get the full path to the config file
  */
-function getConfigPath(): string {
+export function getConfigPath(): string {
   return path.join(getProjectRoot(), CONFIG_FILE);
 }
 
@@ -75,11 +83,53 @@ export async function getApiKey(): Promise<string | null> {
 }
 
 /**
+ * Get the API key synchronously (for status checks)
+ * @returns The API key or null if not configured
+ */
+export function getApiKeySync(): string | null {
+  const configPath = getConfigPath();
+
+  try {
+    const content = fsSync.readFileSync(configPath, 'utf-8');
+    const frontmatter = parseFrontmatter(content);
+    return frontmatter.api_key || null;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
  * Validate API key format
- * @returns true if key format is valid
+ * @returns true if key format is valid (simple check)
  */
 export function validateApiKeyFormat(key: string): boolean {
-  return key.startsWith('esk_') && key.length === 68;
+  return key.startsWith(API_KEY_PREFIX) && key.length === API_KEY_LENGTH;
+}
+
+/**
+ * Validate API key format with detailed error messages
+ * @returns Object with valid status and optional error message
+ */
+export function validateApiKeyFormatDetailed(key: string): { valid: boolean; error?: string } {
+  if (!key) {
+    return { valid: false, error: 'API key is required' };
+  }
+
+  if (!key.startsWith(API_KEY_PREFIX)) {
+    return { valid: false, error: `API key must start with '${API_KEY_PREFIX}'` };
+  }
+
+  if (key.length !== API_KEY_LENGTH) {
+    return {
+      valid: false,
+      error: `API key must be ${API_KEY_LENGTH} characters (got ${key.length})`
+    };
+  }
+
+  return { valid: true };
 }
 
 /**
@@ -133,6 +183,33 @@ export async function configExists(): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Check if Elite Skills is configured (sync version)
+ */
+export function isConfigured(): boolean {
+  return getApiKeySync() !== null;
+}
+
+/**
+ * Delete the API key configuration
+ */
+export async function deleteApiKey(): Promise<{ success: boolean; error?: string }> {
+  const configPath = getConfigPath();
+
+  try {
+    await fs.unlink(configPath);
+    return { success: true };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return { success: true }; // File doesn't exist, consider it deleted
+    }
+    return {
+      success: false,
+      error: `Failed to delete config: ${error instanceof Error ? error.message : 'unknown error'}`
+    };
   }
 }
 
